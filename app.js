@@ -26,54 +26,58 @@ const UPLOAD_DIR = path.resolve(__dirname, './static')
 const STATIC_FILES = path.resolve(__dirname, './static/files');
 
 app.post('/upload', function (req, res) {
-  
+
   const multipart = new multiparty.Form();
   const myEmitter = new EventEmitter();
 
   const formData = {
-      filename: undefined,
-      hash: undefined,
-      chunk: undefined,
+    filename: undefined,
+    hash: undefined,
+    chunk: undefined,
   }
 
   let isFieldOk = false, isFileOk = false;
 
   multipart.parse(req, function (err, fields, files) {
-      formData.filename = fields['filename'][0];
-      formData.hash = fields['hash'][0];
+    formData.filename = fields['filename'][0];
+    formData.hash = fields['hash'][0];
 
-      isFieldOk = true;
-      myEmitter.emit('start');
+    isFieldOk = true;
+    myEmitter.emit('start');
   });
 
   multipart.on('file', function (name, file) {
-      formData.chunk = file;
-      isFileOk = true;
-      myEmitter.emit('start');
+    formData.chunk = file;
+    isFileOk = true;
+    myEmitter.emit('start');
   });
 
-  myEmitter.on('start', function () {
-      if (isFieldOk && isFileOk) {
-          const { filename, hash, chunk } = formData;
-          const dir = `${UPLOAD_DIR}/${filename}`;
+  myEmitter.on('start', async () => {
+    if (isFieldOk && isFileOk) {
+      const { filename, hash, chunk } = formData;
+      const dir = `${UPLOAD_DIR}/${filename}`;
 
-          try {
-              if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+      try {
+        // 合成目录不存在，创建合成目录
+        if (!fse.existsSync(dir)) {
+          await fse.mkdirs(dir);
+        }
+        // if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
-              const buffer = fs.readFileSync(chunk.path);
-              const ws = fs.createWriteStream(`${dir}/${hash}`);
-              ws.write(buffer);
-              ws.close();
+        const buffer = fs.readFileSync(chunk.path);
+        const ws = fs.createWriteStream(`${dir}/${hash}`);
+        ws.write(buffer);
+        ws.close();
 
-              res.send(`${filename}-${hash} 切片上传成功`)
-          } catch (error) {
-              console.error(error);
-          }
-
-          isFieldOk = false;
-          isFileOk = false;
-
+        res.send(`${filename}-${hash} 切片上传成功`)
+      } catch (error) {
+        console.error(error);
       }
+
+      isFieldOk = false;
+      isFileOk = false;
+
+    }
   });
 })
 
@@ -93,7 +97,7 @@ app.post('/merge', async (req, res) => {
       return buffer;
     });
 
-  
+
     const buffer = Buffer.concat(bufferList, len);
     // 合成目录不存在，创建合成目录
     if (!fse.existsSync(`${STATIC_FILES}/${fileName}`)) {
