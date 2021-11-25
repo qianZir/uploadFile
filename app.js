@@ -103,7 +103,7 @@ app.post('/merge', async (req, res) => {
     if (!fse.existsSync(`${STATIC_FILES}/${fileName}`)) {
       await fse.mkdirs(`${STATIC_FILES}/${fileName}`);
     }
-    const ws = fs.createWriteStream(`${UPLOAD_DIR}/${fileName}`);
+    const ws = fs.createWriteStream(`${STATIC_FILES}/${fileName}`);
 
     ws.write(buffer);
     ws.close();
