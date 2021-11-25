@@ -99,8 +99,11 @@ app.post('/merge', async (req, res) => {
 
 
     const buffer = Buffer.concat(bufferList, len);
-
-    const ws = fs.createWriteStream(`${STATIC_FILES}/${fileName}.mp4`);
+    // 合成目录不存在，创建合成目录
+    if (!fse.existsSync(`${STATIC_FILES}/${fileName}`)) {
+      await fse.mkdirs(`${STATIC_FILES}/${fileName}`);
+    }
+    const ws = fs.createWriteStream(`${STATIC_FILES}/${fileName}/${fileName}.mp4`);
 
     ws.write(buffer);
     ws.close();
