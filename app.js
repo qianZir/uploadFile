@@ -28,57 +28,23 @@ const STATIC_FILES = path.resolve(__dirname, './static/files');
 app.post('/upload', function (req, res) {
 
   const multipart = new multiparty.Form();
-  const myEmitter = new EventEmitter();
 
-  const formData = {
-    filename: undefined,
-    hash: undefined,
-    chunk: undefined,
-  }
-
-  let isFieldOk = false, isFileOk = false;
-
-  multipart.parse(req, function (err, fields, files) {
-    formData.filename = fields['filename'][0];
-    formData.hash = fields['hash'][0];
-
-    isFieldOk = true;
-    myEmitter.emit('start');
-  });
-
-  multipart.on('file', function (name, file) {
-    formData.chunk = file;
-    isFileOk = true;
-    myEmitter.emit('start');
-  });
-
-  myEmitter.on('start', async () => {
-    if (isFieldOk && isFileOk) {
-      const { filename, hash, chunk } = formData;
-      const dir = `${UPLOAD_DIR}/${filename}`;
-
-      try {
-        // 合成目录不存在，创建合成目录
-        if (!fse.existsSync(dir)) {
-          await fse.mkdirs(dir);
-        }
-        // if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-
-        const buffer = fs.readFileSync(chunk.path);
-        const ws = fs.createWriteStream(`${dir}/${hash}`);
-        ws.write(buffer);
-        ws.close();
-
-        res.send(`${filename}-${hash} 切片上传成功`)
-      } catch (error) {
-        console.error(error);
-      }
-
-      isFieldOk = false;
-      isFileOk = false;
-
+  multipart.parse(req, async (err, fields, files) => {
+    if (err) {
+      return;
     }
-  });
+    const [chunk] = files.file;
+    const [hash] = fields.hash;
+    const [filename] = fields.filename;
+    const chunkDir = path.resolve(UPLOAD_DIR, filename);
+
+    // 切片目录不存在，创建切片目录
+    if (!fse.existsSync(chunkDir)) {
+      await fse.mkdirs(chunkDir);
+    }
+    await fse.move(chunk.path, `${chunkDir}/${hash}`);
+    res.json({ code: 0, data: '', msg: '切片成功' });
+  })
 })
 
 
