@@ -5,7 +5,6 @@ const multiparty = require('multiparty')
 const fse = require("fs-extra");
 const { Buffer } = require('buffer');
 const fs = require('fs');
-const EventEmitter = require('events');
 
 const app = express()
 const port = 3033
